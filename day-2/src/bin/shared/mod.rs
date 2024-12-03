@@ -25,6 +25,7 @@ impl<'a> InputList<'a> {
             .collect()
     }
 }
+
 #[derive(PartialEq, Eq, Debug)]
 enum AccelerationType {
     Increasing,
@@ -35,31 +36,59 @@ enum AccelerationType {
 struct Movement {
     safe: bool,
     direction: AccelerationType,
+    prev_level: usize,
+    level: usize,
 }
 
 impl Movement {
-    fn new(safe: bool, direction: AccelerationType) -> Self {
-        Self { safe, direction }
+    fn new(safe: bool, direction: AccelerationType, prev_level: usize, level: usize) -> Self {
+        Self {
+            safe,
+            direction,
+            prev_level,
+            level,
+        }
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Report(Vec<usize>);
 impl Report {
     fn get_levels(&self) -> Vec<usize> {
         self.0.clone()
     }
+    fn check_alternative_safeties(&self, index_to_remove: usize, new_tolerance: u8) -> bool {
+        let mut clone1 = self.clone();
+        let mut clone2 = self.clone();
+        clone1.0.remove(index_to_remove);
+        clone2.0.remove(index_to_remove + 1);
+        match index_to_remove > 0 {
+            true => {
+                let mut clone3 = self.clone();
+                clone3.0.remove(index_to_remove - 1);
+                clone1.is_safe(new_tolerance)
+                    || clone2.is_safe(new_tolerance)
+                    || clone3.is_safe(new_tolerance)
+            }
+            false => clone1.is_safe(new_tolerance) || clone2.is_safe(new_tolerance),
+        }
+    }
     pub fn is_safe(&self, tolerance: u8) -> bool {
         let levels = self.get_levels();
         let mut prev_level = levels[0];
         let mut movements: Vec<Movement> = vec![];
-        let mut unsafe_count = 0;
-        for level in levels[1..].iter() {
+        for (i, level) in levels[1..].iter().enumerate() {
             let safe = level.abs_diff(prev_level) <= 3;
             let movement = match level.cmp(&prev_level) {
-                std::cmp::Ordering::Less => Movement::new(safe, AccelerationType::Decreasing),
-                std::cmp::Ordering::Equal => Movement::new(false, AccelerationType::Same),
-                std::cmp::Ordering::Greater => Movement::new(safe, AccelerationType::Increasing),
+                std::cmp::Ordering::Less => {
+                    Movement::new(safe, AccelerationType::Decreasing, prev_level, *level)
+                }
+                std::cmp::Ordering::Equal => {
+                    Movement::new(false, AccelerationType::Same, prev_level, *level)
+                }
+                std::cmp::Ordering::Greater => {
+                    Movement::new(safe, AccelerationType::Increasing, prev_level, *level)
+                }
             };
             match movement.safe {
                 true => {
@@ -67,8 +96,14 @@ impl Report {
                     let is_safe = match prev_acceleration {
                         Some(last) => {
                             if last.direction != movement.direction {
-                                unsafe_count += 1;
-                                false
+                                match tolerance > 0 {
+                                    true => {
+                                        return self.check_alternative_safeties(i, tolerance - 1)
+                                    }
+                                    false => {
+                                        return false;
+                                    }
+                                }
                             } else {
                                 true
                             }
@@ -80,13 +115,14 @@ impl Report {
                         movements.push(movement);
                     }
                 }
-                false => unsafe_count += 1,
-            }
-            if unsafe_count > tolerance {
-                return false;
+                false => match tolerance > 0 {
+                    true => return self.check_alternative_safeties(i, tolerance - 1),
+                    false => {
+                        return false;
+                    }
+                },
             }
         }
-        dbg!(movements);
         true
     }
 }
@@ -94,6 +130,7 @@ impl Report {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test_case::test_case;
 
     #[test]
     fn test_parse_input() {
@@ -130,6 +167,16 @@ mod tests {
         assert_eq!(reports[3].is_safe(1), true);
         assert_eq!(reports[4].is_safe(1), true);
         assert_eq!(reports[5].is_safe(1), true);
-        assert!(false);
+    }
+
+    #[test_case(Report(vec![1, 1, 2, 3, 4, 5]))]
+    #[test_case(Report(vec![1, 2, 3, 4, 5, 5]))]
+    #[test_case(Report(vec![1, 2, 3, 4, 5, 4]))]
+    #[test_case(Report(vec![1, 11, 13, 14, 15]))]
+    #[test_case(Report(vec![2, 1, 3, 4, 5]))]
+    #[test_case(Report(vec![2, 5, 3, 4, 5]))]
+    #[test_case(Report(vec![81, 84, 81, 80, 77, 75, 72, 69]))]
+    fn test_is_safe_report_tolerance_1_valid_edgecases(inp: Report) {
+        assert_eq!(inp.is_safe(1), true);
     }
 }
