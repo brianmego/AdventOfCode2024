@@ -16,7 +16,7 @@ run DAY PART:
 # Measure using hyperfine
 time DAY PART:
     cd day-{{DAY}} && \
-    cargo build --release && \
+    cargo build --release 2>/dev/null && \
     hyperfine --warmup 5 -N target/release/part{{PART}}
 
 # Test a day
