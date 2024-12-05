@@ -1,4 +1,5 @@
-use aoc_utils::{BadTileTypeError, Collection, Direction, Loc, ParseableCharacters, Tile};
+use aoc_utils::{BadTileTypeError, Collection, Direction, Loc, ParseableCharacters, Tile, parse_collection};
+use rayon::prelude::*;
 
 #[cfg(test)]
 pub const PUZZLE_INPUT: &str = include_str!("../../data/sample_input.txt");
@@ -47,58 +48,83 @@ impl ParseableCharacters for Letter {
     }
 }
 
-enum NotWordError {
-    StartWithNonX,
-    NoM,
-    NoA,
-    NoS,
+// enum NotWordError {
+//     StartWithNonX,
+//     NoM,
+//     NoA,
+//     NoS,
+// }
+type Word = Vec<Tile<Letter>>;
+pub struct WordSearch(Collection<Letter>);
+
+impl From<&str> for WordSearch {
+    fn from(value: &str) -> Self {
+        Self(parse_collection(value).unwrap().1)
+    }
 }
-trait WordSearch {
-    fn search_loc_for_words(&self, loc: Loc) -> Vec<Tile<Letter>>;
-}
-impl WordSearch for Collection<Letter> {
-    fn search_loc_for_words(&self, loc: Loc) -> Vec<Tile<Letter>> {
-        let new_loc = loc;
-        Direction::get_all()
-            .iter()
+impl WordSearch {
+    pub fn search_puzzle_for_words(&self) -> Vec<Word> {
+        self.0.tiles()
+            .par_iter()
+            .map(|t| self.search_loc_for_words(*t.loc()))
+            .flatten()
+            .collect()
+    }
+
+    fn search_loc_for_words(&self, loc: Loc) -> Vec<Word> {
+        let words: Vec<Word> = Direction::get_all()
+            .par_iter()
             .map(|d| {
-                let tile = self.get_tile(new_loc).unwrap();
-                let mut word: Vec<&Tile<Letter>> = vec![tile];
-                while let Some(next_letter) = word.last().unwrap().tile_type().get_next() {
+                let mut new_loc = loc;
+                let tile = self.0.get_tile(new_loc).unwrap();
+                let mut word: Vec<Tile<Letter>> = vec![*tile];
+                while let Some(expected_next_letter) = word.last().unwrap().tile_type().get_next() {
+                    if let Some(next_loc) = new_loc.get_nearby(*d, 1) {
+                        if let Some(next_tile) = self.0.get_tile(next_loc) {
+                            if next_tile.tile_type() == &expected_next_letter {
+                                word.push(*next_tile);
+                                new_loc = next_loc;
+                            } else {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
                 }
-                            // let next_loc = loc.get_nearby(*d, 1).unwrap();
-                            // if let Some(next_tile) = self.get_tile(next_loc) {
-                            //     if next_tile.tile_type() == &next_letter {
-                            //         word.push(next_tile);
-                            //         println!("{:?} {:?} is a good start", loc, d);
-                            //     }
-                            // }
-                    // }
-                // }
                 word
             })
-            .collect()
+            .filter(|x| x.len() == 4)
+            .collect();
+        words
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aoc_utils::{parse_collection, Collection, Loc};
 
     #[test]
     fn test_parse_input() {
-        let actual: (&str, Collection<Letter>) = parse_collection(PUZZLE_INPUT).unwrap();
-        assert_eq!(actual.0.len(), 0);
-        assert_eq!(actual.1.len(), 100);
+        let actual = WordSearch::from(PUZZLE_INPUT);
+        assert_eq!(actual.0.len(), 100);
+    }
+
+    #[test]
+    fn test_word_search_loc() {
+        let inp = WordSearch::from(PUZZLE_INPUT);
+        let loc = Loc::new(5, 9);
+        let actual: Vec<Word> = inp.search_loc_for_words(loc);
+        assert_eq!(actual.len(), 3);
+        // assert_eq!(next_tile, &Tile::new(Letter::M, Loc::new(6, 0)));
     }
 
     #[test]
     fn test_word_search() {
-        let actual: (&str, Collection<Letter>) = parse_collection(PUZZLE_INPUT).unwrap();
-        let loc = Loc::new(5, 9);
-        actual.1.search_loc_for_words(loc);
-        assert!(false);
-        // assert_eq!(next_tile, &Tile::new(Letter::M, Loc::new(6, 0)));
+        let inp = WordSearch::from(PUZZLE_INPUT);
+        let actual: Vec<Word> = inp.search_puzzle_for_words();
+        assert_eq!(actual.len(), 18);
     }
 }

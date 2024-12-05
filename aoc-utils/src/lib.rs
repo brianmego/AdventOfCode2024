@@ -227,6 +227,9 @@ impl<T> Tile<T> {
     pub fn tile_type(&self) -> &T {
         &self.tile_type
     }
+    pub fn loc(&self) -> &Loc {
+        &self.loc
+    }
 }
 impl<T> PartialEq for Tile<T>
 where
