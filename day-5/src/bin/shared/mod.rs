@@ -37,6 +37,10 @@ pub fn sum_valid_middles(inp: &str) -> usize {
         .sum()
 }
 
+pub fn sum_corrected_middles(inp: &str) -> usize {
+    10
+}
+
 struct Rule {
     page: u8,
     dependent: u8,
@@ -63,16 +67,18 @@ impl RuleSet {
     fn get_rule(&self, page: u8) -> Option<&Vec<u8>> {
         self.0.get(&page)
     }
+    fn sort(&self) -> Vec<u8> {
+        vec![]
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
 struct Update {
     pages: Vec<u8>,
-    ruleset: RuleSet
 }
 impl Update {
     fn new(pages: Vec<u8>) -> Self {
-        Self { pages, ruleset: RuleSet::default() }
+        Self { pages }
     }
 
     fn is_valid(&self, ruleset: &RuleSet) -> bool {
@@ -136,5 +142,17 @@ mod tests {
     fn test_sum_valid_middles() {
         let actual = sum_valid_middles(PUZZLE_INPUT);
         assert_eq!(actual, 143)
+    }
+
+    #[test]
+    fn test_sorted_ruleset() {
+        let (ruleset, _) = parse_input(PUZZLE_INPUT);
+        assert_eq!(ruleset.sort(), [97, 75, 47, 61, 53, 29, 13]);
+    }
+
+    #[test]
+    fn test_sum_corrected_middles() {
+        let actual = sum_corrected_middles(PUZZLE_INPUT);
+        assert_eq!(actual, 123)
     }
 }
