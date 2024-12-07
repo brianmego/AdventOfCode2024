@@ -27,7 +27,7 @@ test DAY:
 # Test a day every time code is changed
 keeptesting DAY:
     cd day-{{DAY}} && \
-    cargo watch -x test
+    cargo watch -cx test
 
 # Test the shared utils
 testutils:

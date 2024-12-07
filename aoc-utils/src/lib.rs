@@ -71,10 +71,18 @@ impl Loc {
             Direction::East => Self::new(self.x.checked_add(distance)?, self.y),
             Direction::South => Self::new(self.x, self.y.checked_add(distance)?),
             Direction::West => Self::new(self.x.checked_sub(distance)?, self.y),
-            Direction::NorthEast => Self::new(self.x.checked_add(distance)?, self.y.checked_sub(distance)?),
-            Direction::SouthEast => Self::new(self.x.checked_add(distance)?, self.y.checked_add(distance)?),
-            Direction::SouthWest => Self::new(self.x.checked_sub(distance)?, self.y.checked_add(distance)?),
-            Direction::NorthWest => Self::new(self.x.checked_sub(distance)?, self.y.checked_sub(distance)?),
+            Direction::NorthEast => {
+                Self::new(self.x.checked_add(distance)?, self.y.checked_sub(distance)?)
+            }
+            Direction::SouthEast => {
+                Self::new(self.x.checked_add(distance)?, self.y.checked_add(distance)?)
+            }
+            Direction::SouthWest => {
+                Self::new(self.x.checked_sub(distance)?, self.y.checked_add(distance)?)
+            }
+            Direction::NorthWest => {
+                Self::new(self.x.checked_sub(distance)?, self.y.checked_sub(distance)?)
+            }
         })
     }
     pub fn get_x(&self) -> isize {
@@ -124,7 +132,10 @@ where
 }
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Collection<T>(Vec<Tile<T>>);
-impl<T> Collection<T> {
+impl<T> Collection<T>
+where
+    T: ParseableCharacters + Copy + TryFrom<char>,
+{
     fn push(&mut self, tile: Tile<T>) {
         self.0.push(tile)
     }
@@ -156,10 +167,18 @@ impl<T> Collection<T> {
             .find(|t| t.loc.x == loc.x)
             .copied()
     }
+
+    pub fn from_puzzle_input(puzzle_input: &str) -> Collection<T>
+    where
+        <T as TryFrom<char>>::Error: Debug,
+    {
+        parse_collection(puzzle_input).unwrap().1
+    }
 }
+
 pub type CollectionGroup<T> = Vec<Collection<T>>;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Direction {
     North,
     East,
@@ -201,7 +220,7 @@ impl Direction {
             Direction::North,
             Direction::East,
             Direction::South,
-            Direction::West
+            Direction::West,
         ]
     }
     pub fn get_all() -> Vec<Self> {
@@ -213,7 +232,7 @@ impl Direction {
             Direction::NorthEast,
             Direction::SouthEast,
             Direction::SouthWest,
-            Direction::NorthWest
+            Direction::NorthWest,
         ]
     }
 }
@@ -224,8 +243,14 @@ pub struct Tile<T> {
     loc: Loc,
 }
 impl<T> Tile<T> {
-    pub fn tile_type(&self) -> &T {
+    pub fn get_type(&self) -> &T {
         &self.tile_type
+    }
+    pub fn get_type_owned(self) -> T {
+        self.tile_type
+    }
+    pub fn set_type(&mut self, new_type: T) {
+        self.tile_type = new_type;
     }
     pub fn loc(&self) -> &Loc {
         &self.loc
