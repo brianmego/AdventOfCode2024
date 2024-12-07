@@ -78,10 +78,10 @@ impl WordSearch {
                 let mut new_loc = loc;
                 let tile = self.0.get_tile(new_loc).unwrap();
                 let mut word: Vec<Tile<Letter>> = vec![*tile];
-                while let Some(expected_next_letter) = word.last().unwrap().tile_type().get_next() {
+                while let Some(expected_next_letter) = word.last().unwrap().get_type().get_next() {
                     if let Some(next_loc) = new_loc.get_nearby(*d, 1) {
                         if let Some(next_tile) = self.0.get_tile(next_loc) {
-                            if next_tile.tile_type() == &expected_next_letter {
+                            if next_tile.get_type() == &expected_next_letter {
                                 word.push(*next_tile);
                                 new_loc = next_loc;
                             } else {
