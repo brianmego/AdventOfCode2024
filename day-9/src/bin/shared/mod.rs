@@ -90,13 +90,14 @@ pub struct CompactFile {
 }
 impl CompactFile {
     pub fn checksum(&self) -> usize {
-        let sum: u32 = self
+        dbg!(&self.data);
+        let sum: usize = self
             .data
             .chars()
             .into_iter()
             .enumerate()
             .filter(|(_, c)| c != &'.')
-            .map(|(i, c)| i as u32 * (c.to_digit(10).unwrap()))
+            .map(|(i, c)| {dbg!(i, c, c.to_digit(10).unwrap());i * (c.to_digit(10).unwrap()) as usize})
             .sum();
         sum as usize
     }
