@@ -22,23 +22,27 @@ impl MagicStone {
 }
 impl From<&str> for MagicStone {
     fn from(value: &str) -> Self {
+        let mut value = value.trim_start_matches('0');
+        if value.is_empty() {
+            value = "0";
+        }
         Self(value.to_string())
     }
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct StoneList {
+pub struct StoneList {
     stones: Vec<MagicStone>,
 }
 
 impl StoneList {
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.stones.len()
     }
-    fn blink(&self, count: usize) -> StoneList {
+    pub fn blink(&self, count: usize) -> StoneList {
         let mut stones = self.stones.clone();
         for i in 0..count {
-            dbg!(i, &stones);
+            dbg!(i, stones.len());
             let mut new_stones = vec![];
             for stone in stones {
                 let after_blink = stone.blink();
@@ -53,7 +57,7 @@ impl From<&str> for StoneList {
     fn from(value: &str) -> Self {
         let stones: Vec<MagicStone> = value
             .split_whitespace()
-            .map(|x| MagicStone::from(x))
+            .map(MagicStone::from)
             .collect();
         Self { stones }
     }
@@ -75,6 +79,7 @@ mod tests {
     #[test_case("10", vec![MagicStone::from("1"), MagicStone::from("0")])]
     #[test_case("99", vec![MagicStone::from("9"), MagicStone::from("9")])]
     #[test_case("999", vec![MagicStone::from("2021976")])]
+    #[test_case("253000", vec![MagicStone::from("253"), MagicStone::from("0")])]
     fn test_blink_conditions(inp: &str, expected: Vec<MagicStone>) {
         let stone = MagicStone::from(inp);
         let actual = stone.blink();
@@ -84,7 +89,7 @@ mod tests {
     #[test_case("0 1 10 99 999", 1, "1 2024 1 0 9 9 2021976")]
     #[test_case("125 17", 1, "253000 1 7")]
     #[test_case("125 17", 2, "253 0 2024 14168")]
-    // #[test_case("125 17", 6, "2097446912 14168 4048 2 0 2 4 40 48 2024 40 48 80 96 2 8 6 7 6 0 3 2")]
+    #[test_case("125 17", 6, "2097446912 14168 4048 2 0 2 4 40 48 2024 40 48 80 96 2 8 6 7 6 0 3 2")]
     fn test_list_blinks(inp: &str, blinks: usize, expected: &str) {
         let stone_list = StoneList::from(inp);
         let expected_list = StoneList::from(expected);
